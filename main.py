@@ -72,6 +72,7 @@ while running:
     if obstacle2_x <= -obstacle_width:
         obstacle2_x = screen_width
         
+    #각 오브젝트 rect
     player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
     obstacle_rect = pygame.Rect(obstacle_x, obstacle_y, obstacle_width, obstacle_height)
     obstacle2_rect = pygame.Rect(obstacle2_x, obstacle_y, obstacle_width, obstacle_height)
@@ -83,8 +84,9 @@ while running:
         print("Game Over!")
         obstacle2_x = screen_width
     
-        
+    #플레이어 그리기
     pygame.draw.rect(screen, player_color,(player_x, player_y, player_size, player_size))
+    #바닥 그리기
     pygame.draw.line(screen, BLACK, (0, 350), (screen_width, 350), 5)
         
     #삼각형 장애물 그리기
