@@ -28,6 +28,8 @@ obstacle_x = screen_width
 obstacle_width = 40
 obstacle_height = 40
 
+obstacle2_x = obstacle_x + 40
+
 obstacle_y = 350 - obstacle_height
 obstacle_speed = 8
 
@@ -66,12 +68,21 @@ while running:
     if obstacle_x <= -obstacle_width:
         obstacle_x = screen_width
         
+    obstacle2_x -= obstacle_speed
+    if obstacle2_x <= -obstacle_width:
+        obstacle2_x = screen_width
+        
     player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
     obstacle_rect = pygame.Rect(obstacle_x, obstacle_y, obstacle_width, obstacle_height)
+    obstacle2_rect = pygame.Rect(obstacle2_x, obstacle_y, obstacle_width, obstacle_height)
     
     if player_rect.colliderect(obstacle_rect):
         print("Game Over!")
         obstacle_x = screen_width
+    if player_rect.colliderect(obstacle2_rect):
+        print("Game Over!")
+        obstacle2_x = screen_width
+    
         
     pygame.draw.rect(screen, player_color,(player_x, player_y, player_size, player_size))
     pygame.draw.line(screen, BLACK, (0, 350), (screen_width, 350), 5)
@@ -81,8 +92,15 @@ while running:
     point_bottom_left = (obstacle_x, obstacle_y+obstacle_height)
     point_bottom_right = (obstacle_x + obstacle_width, obstacle_y+obstacle_height)
     
+    point_top2 = (obstacle2_x + obstacle_width//2, obstacle_y)
+    point_bottom_left2 = (obstacle2_x, obstacle_y+obstacle_height)
+    point_bottom_right2 = (obstacle2_x + obstacle_width, obstacle_y+obstacle_height)
+    
     triangle_points = [point_top, point_bottom_left, point_bottom_right]
+    triangle_points2 = [point_top2, point_bottom_left2, point_bottom_right2]
+    
     pygame.draw.polygon(screen, RED, triangle_points)
+    pygame.draw.polygon(screen, RED, triangle_points2)
     pygame.display.update()
-    clock.tick(120)
+    clock.tick(60)
 pygame.quit()
