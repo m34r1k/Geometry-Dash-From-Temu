@@ -68,7 +68,6 @@ while running:
             if not is_jumping:
                 player_v_y = jump_pwr
                 is_jumping = True
-    screen.fill(WHITE)
     
     #물리법칙
     player_v_y += gravity
@@ -98,52 +97,73 @@ while running:
     if floors[0].right < 0:
         floors.pop(0)
         
-    #만약 중력에 의해 라인보다 밑에 가려고 한다면 고정시키기
-    if player_y > 300:
-        player_y = 300
-        player_v_y = 0
-        is_jumping = False
-        
-    #장애물 이동
-    obstacle_x -= obstacle_speed
-    if obstacle_x <= -obstacle_width:
-        obstacle_x = screen_width
-        
-    obstacle2_x -= obstacle_speed
-    if obstacle2_x <= -obstacle_width:
-        obstacle2_x = screen_width
-        
-    #각 오브젝트 rect
-    player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
-    obstacle_rect = pygame.Rect(obstacle_x, obstacle_y, obstacle_width, obstacle_height)
-    obstacle2_rect = pygame.Rect(obstacle2_x, obstacle_y, obstacle_width, obstacle_height)
+    #모든 바닥 블록 왼쪽으로 이동 및 충돌 검사
+    on_ground = False
     
-    if player_rect.colliderect(obstacle_rect):
-        print("Game Over!")
-        obstacle_x = screen_width
-    if player_rect.colliderect(obstacle2_rect):
-        print("Game Over!")
-        obstacle2_x = screen_width
+    for floor in floors:
+        floor.x -= floor_speed
+        #플레이어랑 바닥 블록이 겹쳤는지 확인
+        if player_rect.colliderect(floor):
+            #충돌 판단 (바닥이 닿았나 옆에 닿았나)
+            #플레이어 발바닥이 블록 윗면 근처이고 아래로 떨어지는 중일때 -> 착지 성공
+            if player_rect.bottom <= floor.top + 15 and player_v_y >= 0:
+                player_y = floor.top-player_size
+                player_v_y = 0
+                is_jumping = False
+                on_ground = True
+            else:
+                #옆에 부딫혔을 때 게임 오버
+                print("Game Over!")
+                running = False
+                
+    #땅에 닿지 않았다면 점프 상태로 변경 (계단에서 떨어질 때)
+    if not on_ground and player_v_y == 0:
+        is_jumping = True
+        
+    #장애물 이동 및 충돌
+    obstacle_rect.y = 350-obstacle_height
+    obstacle_rect.x -= floor_speed
+    
+    if obstacle_rect.right < 0:
+        reset_obstacle()
+        
+    #장애물 충돌 검사
+    collision_box = obstacle_rect.inflate(-10 ,-10)
+    if player_rect.colliderect(collision_box):
+        print("가시에 찔림. Game Over!")
+        running = False
+    
+    #화면 그리기
+    screen.fill(WHITE)
+    
+    #바닥 그리기
+    for floor in floors:
+        pygame.draw.rect(screen, BLACK, floor)
     
     #플레이어 그리기
     pygame.draw.rect(screen, player_color,(player_x, player_y, player_size, player_size))
-    #바닥 그리기
-    pygame.draw.line(screen, BLACK, (0, 350), (screen_width, 350), 5)
         
     #삼각형 장애물 그리기
-    point_top = (obstacle_x + obstacle_width//2, obstacle_y)
-    point_bottom_left = (obstacle_x, obstacle_y+obstacle_height)
-    point_bottom_right = (obstacle_x + obstacle_width, obstacle_y+obstacle_height)
-    
-    point_top2 = (obstacle2_x + obstacle_width//2, obstacle_y)
-    point_bottom_left2 = (obstacle2_x, obstacle_y+obstacle_height)
-    point_bottom_right2 = (obstacle2_x + obstacle_width, obstacle_y+obstacle_height)
-    
-    triangle_points = [point_top, point_bottom_left, point_bottom_right]
-    triangle_points2 = [point_top2, point_bottom_left2, point_bottom_right2]
-    
-    pygame.draw.polygon(screen, RED, triangle_points)
-    pygame.draw.polygon(screen, RED, triangle_points2)
+    if obstacle_type == 1:
+        # 삼각형 1개
+        p1 = (obstacle_rect.centerx, obstacle_rect.top)
+        p2 = (obstacle_rect.left, obstacle_rect.bottom)
+        p3 = (obstacle_rect.right, obstacle_rect.bottom)
+        pygame.draw.polygon(screen, RED, [p1, p2, p3])
+    else:
+        # 삼각형 2개 (반반 나누어서 그림)
+        mid_width = obstacle_width_unit
+        # 첫 번째 가시
+        p1 = (obstacle_rect.left + mid_width/2, obstacle_rect.top)
+        p2 = (obstacle_rect.left, obstacle_rect.bottom)
+        p3 = (obstacle_rect.left + mid_width, obstacle_rect.bottom)
+        pygame.draw.polygon(screen, RED, [p1, p2, p3])
+        # 두 번째 가시
+        p4 = (obstacle_rect.left + mid_width + mid_width/2, obstacle_rect.top)
+        p5 = (obstacle_rect.left + mid_width, obstacle_rect.bottom)
+        p6 = (obstacle_rect.right, obstacle_rect.bottom)
+        pygame.draw.polygon(screen, RED, [p4, p5, p6])
+
     pygame.display.update()
     clock.tick(60)
 pygame.quit()
