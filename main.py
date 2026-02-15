@@ -73,7 +73,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
            
-    if pygame.mouse.get_pressed()[0]:
+    if pygame.mouse.get_pressed()[0]: #마우스 꾹 누르면 연속적으로 점프
         if not is_jumping:
             player_v_y = jump_pwr
             is_jumping = True
@@ -82,25 +82,39 @@ while running:
     player_v_y += gravity
     player_y += player_v_y
     player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
+    
+    if player_y > screen_height:
+        running = False
+        print("낭떠러지에서 추락! Game Over!")
    
     # --- 바닥 생성 알고리즘 ---
     last_floor = floors[-1]
 
     if last_floor.right <= screen_width + floor_width * 2:
+        
         new_y = last_floor.y
-        rand_val = random.randint(0, 10)
-       
-        if rand_val < 3:
+        rand_val = random.randint(0, 100)
+
+        is_gap = False
+        
+        if rand_val < 10:
+            is_gap = True
+        
+        elif rand_val < 40:
             new_y -= player_size
-        elif rand_val < 5:
-            new_y += player_size
+        elif rand_val < 70:
+            new_y += player_size * random.randint(1, 3)
        
         if new_y < 200:
             new_y = 200
         if new_y > 350:
             new_y = 350
            
-        new_block = pygame.Rect(last_floor.right, new_y, floor_width, 500)
+        if is_gap == True:
+            new_x = last_floor.right + floor_width
+        else:
+            new_x = last_floor.right
+        new_block = pygame.Rect(new_x, new_y, floor_width, 500)
         floors.append(new_block)
 
     if floors[0].right < 0:
