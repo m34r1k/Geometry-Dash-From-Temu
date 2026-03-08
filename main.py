@@ -7,9 +7,17 @@ pygame.init()
 GAME_MODE = "CUSTOM"
 
 custom_level = [
+    # step_up
+    # step_down
+    # floor_reset
+    # cliff
+    # obstacle_1
+    # obstacle_2
     ("step_up", 2.0),
-    ("floor_reset", 4.0),
-    ("obstacle_2", 4.0,)
+    ("step_up", 3.0),
+    ("floor_reset", 5.0),
+    ("obstacle_1", 6.0),
+    ("obstacle_2", 7.0)
 ]
 
 # 게임 변수 정의
