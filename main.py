@@ -2,6 +2,7 @@ import pygame
 import random
 
 pygame.init()
+pygame.mixer.init()
 
 #===============================================================================
 GAME_MODE = "CUSTOM"
@@ -24,9 +25,12 @@ custom_level = [
 screen_width = 800
 screen_height = 400
 font = pygame.font.SysFont(None, 80)
+font_medium = pygame.font.SysFont(None, 50)
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Geometry Dash")
+
+pygame.mixer.music.load("Tobu - Higher - Tobu.mp3")
 
 clock = pygame.time.Clock()
 
@@ -38,47 +42,61 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 # 플레이어 관련 변수
-player_x = 100
-player_y = 300
 player_size = 50
 player_color = BLUE
 
 # 중력 관련 변수
-player_v_y = 0
 gravity = 1.0
 jump_pwr = -17
-is_jumping = False
 
 # 바닥(계단) 관련 변수
 floor_speed = 6
 floor_height = 350
 floor_width = 100
 
-# 바닥 블록 생성
-floors = []
-for i in range(screen_width // floor_width + 5):
-    rect = pygame.Rect(i * floor_width, floor_height, floor_width, 500)
-    floors.append(rect)
-
 # 장애물 변수
-obstacles = []
 obstacle_width_unit = 40
 obstacle_height = 40
 # obstacle_type = 1
 # obstacle_rect = pygame.Rect(screen_width, 350 - obstacle_height, obstacle_width_unit, obstacle_height)
-start_ticks = pygame.time.get_ticks()
 
-next_command_idx = 0
-game_clear = False
-last_obstacle_time = 0
+restart_button_rect = pygame.Rect(screen_width // 2 - 100, screen_height // 2 + 50, 200, 50)
+
+def reset_game():
+    global player_x, player_y, player_v_y, is_jumping
+    global floors, obstacles, start_ticks
+    global next_command_idx, game_clear, game_over, last_obstacle_time
+    player_x = 100
+    player_y = 300
+    player_v_y = 0
+    is_jumping = False
+    # 바닥 블록 생성
+    floors = []
+    for i in range(screen_width // floor_width + 5):
+        rect = pygame.Rect(i * floor_width, floor_height, floor_width, 500)
+        floors.append(rect)
+    obstacles = []
+    start_ticks = pygame.time.get_ticks()
+    next_command_idx = 0
+    game_clear = False
+    game_over = False
+    last_obstacle_time = 0
+    pygame.mixer.music.play(-1)
+    
+reset_game()
 
 running = True
 while running:
-    current_time = pygame.time.get_ticks()
-    elapsed_time = (current_time - start_ticks) // 1000
+    if not game_over and not game_clear:
+        current_time = pygame.time.get_ticks()
+        elapsed_time = (current_time - start_ticks) // 1000
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if game_over:
+                if restart_button_rect.collidepoint(event.pos):
+                    reset_game()
            
     if pygame.mouse.get_pressed()[0]: #마우스 꾹 누르면 연속적으로 점프
         if not is_jumping:
@@ -89,20 +107,21 @@ while running:
             last_cmd_time = custom_level[-1][1]
             if elapsed_time > last_cmd_time + 4.0:
                 game_clear = True
-    if game_clear:
-        player_x += 5
+    if not game_over:
+        if game_clear:
+            player_x += 5
             
-    # 물리법칙
-    player_v_y += gravity
-    player_y += player_v_y
-    player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
+        # 물리법칙
+        player_v_y += gravity
+        player_y += player_v_y
+        player_rect = pygame.Rect(player_x, player_y, player_size, player_size)
     
-    if not game_clear and player_y > screen_height:
-        running = False
-        print("낭떠러지에서 추락! Game Over!")
+        if not game_clear and player_y > screen_height:
+            game_over = True
+            pygame.mixer.music.stop()
    
     # --- 바닥 생성 알고리즘 ---
-    if not game_clear:
+    if not game_clear and not game_over:
         last_floor = floors[-1]
         if last_floor.right <= screen_width + floor_width * 2:
             
@@ -170,34 +189,36 @@ while running:
         obstacles = active_obstacles
        
     # 이동 및 충돌 검사
-    on_ground = False
-   
-    for floor in floors:      
-        if player_rect.colliderect(floor):
-            # 점프 중(상승 중)일 때는 바닥 무시
-            if player_v_y < 0:
-                continue
+    if not game_over:
+        on_ground = False
+    
+        for floor in floors:      
+            if player_rect.colliderect(floor):
+                # 점프 중(상승 중)일 때는 바닥 무시
+                if player_v_y < 0:
+                    continue
 
-            # 착지 판정
-            if player_rect.bottom <= floor.top + 20 and player_v_y >= 0:
-                player_y = floor.top - player_size
-                player_v_y = 0
-                is_jumping = False
-                on_ground = True
-            else:
-                # 옆면 충돌 판정
-                if player_rect.right > floor.left + 10 and not game_clear:
-                    print("벽에 부딪힘! Game Over!")
-                    running = False
-                   
-    if not on_ground and player_v_y == 0:
-        is_jumping = True
-    if not game_clear:
-        for obs in obstacles:
-            collision_box = obs['rect'].inflate(-15, -15)
-            if player_rect.colliderect(collision_box):
-                print("가시에 찔림. Game Over!")
-                running = False
+                # 착지 판정
+                if player_rect.bottom <= floor.top + 20 and player_v_y >= 0:
+                    player_y = floor.top - player_size
+                    player_v_y = 0
+                    is_jumping = False
+                    on_ground = True
+                else:
+                    # 옆면 충돌 판정
+                    if player_rect.right > floor.left + 10 and not game_clear:
+                        game_over = True
+                        pygame.mixer.music.stop()
+                    
+        if not on_ground and player_v_y == 0:
+            is_jumping = True
+        if not game_clear:
+            for obs in obstacles:
+                collision_box = obs['rect'].inflate(-15, -15)
+                if player_rect.colliderect(collision_box):
+                    game_over = True
+                    pygame.mixer.music.stop()
+                    
     # 그리기
     screen.fill(WHITE)
    
@@ -229,6 +250,21 @@ while running:
         win_text = font.render("GAME CLEAR!", True, GREEN)
         win_text_rect = win_text.get_rect(center = (screen_width / 2, screen_height/2))
         screen.blit(win_text, win_text_rect)
+        
+    if game_over:
+        overlay = pygame.Surface((screen_width, screen_height))
+        overlay.set_alpha(150)
+        overlay.fill(BLACK)
+        screen.blit(overlay, (0, 0))
+        
+        fail_text = font.render("GAME OVER!", True, RED)
+        fail_text_rect = fail_text.get_rect(center = (screen_width / 2, screen_height/2))
+        screen.blit(fail_text, fail_text_rect)
+        
+        pygame.draw.rect(screen, BLUE, restart_button_rect, border_radius=10)
+        button_text = font_medium.render("RESTART", True, WHITE)
+        button_text_rect = button_text.get_rect(center = restart_button_rect.center)
+        screen.blit(button_text, button_text_rect)
 
     pygame.display.update()
     clock.tick(60)
