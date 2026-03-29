@@ -18,7 +18,24 @@ custom_level = [
     ("step_up", 3.0),
     ("floor_reset", 5.0),
     ("obstacle_1", 6.0),
-    ("obstacle_2", 7.0)
+    ("obstacle_2", 7.0),
+    ("obstacle_2", 8.0),
+    ("step_up", 9.0),
+    ("step_up", 10.0),
+    ("floor_reset", 11.0),
+    ("cliff", 12.0),
+    ("cliff", 13.0),
+    ("cliff", 14.0),
+    ("obstacle_2", 16.0),
+    ("step_up", 18.0),
+    ("step_up", 19.0),
+    ("step_up", 20.0),
+    ("cliff", 21.0),
+    ("floor_reset", 22.0),
+    ("obstacle_2", 23.0),
+    ("obstacle_1", 24.0),
+    ("obstacle_1", 26.0),
+    ("obstacle_1", 28.0),
 ]
 
 # 게임 변수 정의
@@ -26,11 +43,16 @@ screen_width = 800
 screen_height = 400
 font = pygame.font.SysFont(None, 80)
 font_medium = pygame.font.SysFont(None, 50)
+font_small = pygame.font.SysFont(None, 30)
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Geometry Dash")
 
 pygame.mixer.music.load("Tobu - Higher - Tobu.mp3")
+
+best_progress = 0
+
+total_level_duration = custom_level[-1][1] + 4.0
 
 clock = pygame.time.Clock()
 
@@ -40,6 +62,8 @@ BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
+DARK_GRAY = (100, 100, 100)
+GRAY = (200, 200, 200)
 
 # 플레이어 관련 변수
 player_size = 50
@@ -65,7 +89,7 @@ restart_button_rect = pygame.Rect(screen_width // 2 - 100, screen_height // 2 + 
 def reset_game():
     global player_x, player_y, player_v_y, is_jumping
     global floors, obstacles, start_ticks
-    global next_command_idx, game_clear, game_over, last_obstacle_time
+    global next_command_idx, game_clear, game_over, last_obstacle_time, current_progress_percent
     player_x = 100
     player_y = 300
     player_v_y = 0
@@ -82,6 +106,7 @@ def reset_game():
     game_over = False
     last_obstacle_time = 0
     pygame.mixer.music.play(-1)
+    current_progress_percent = 0
     
 reset_game()
 
@@ -89,7 +114,10 @@ running = True
 while running:
     if not game_over and not game_clear:
         current_time = pygame.time.get_ticks()
-        elapsed_time = (current_time - start_ticks) // 1000
+        elapsed_time = (current_time - start_ticks) / 1000
+        
+        progress_ratio = min(1.0, elapsed_time / total_level_duration)
+        current_progress_percent = int(progress_ratio * 100)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -246,12 +274,29 @@ while running:
             
     pygame.draw.rect(screen, player_color, (player_x, player_y, player_size, player_size))
     
+    bar_width = 400
+    bar_height = 20
+    bar_x = (screen_width - bar_width) // 2
+    bar_y = 20
+    
+    pygame.draw.rect(screen, DARK_GRAY, (bar_x, bar_y, bar_width, bar_height), 3)
+    fill_width = int(bar_width * progress_ratio)
+    
+    pygame.draw.rect(screen, GREEN, (bar_x, bar_y, fill_width, bar_height))
+    
+    percent_text = font_small.render(f"{current_progress_percent}%", True, BLACK)
+    screen.blit(percent_text, (bar_x+bar_width+10,bar_y))
+    
     if game_clear:
+        best_progress = max(current_progress_percent, best_progress)
+        
         win_text = font.render("GAME CLEAR!", True, GREEN)
         win_text_rect = win_text.get_rect(center = (screen_width / 2, screen_height/2))
         screen.blit(win_text, win_text_rect)
         
     if game_over:
+        best_progress = max(current_progress_percent, best_progress)
+        
         overlay = pygame.Surface((screen_width, screen_height))
         overlay.set_alpha(150)
         overlay.fill(BLACK)
@@ -265,6 +310,10 @@ while running:
         button_text = font_medium.render("RESTART", True, WHITE)
         button_text_rect = button_text.get_rect(center = restart_button_rect.center)
         screen.blit(button_text, button_text_rect)
+        
+        progress_text = font_medium.render(f"Your Progress: {current_progress_percent}% | Best Progress: {best_progress}%", True, BLACK)
+        progress_text_rect = progress_text.get_rect(center = (screen_width // 2, screen_height // 2 - 80))
+        screen.blit(progress_text, progress_text_rect)
 
     pygame.display.update()
     clock.tick(60)
